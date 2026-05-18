@@ -14,6 +14,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -27,25 +28,23 @@ import androidx.compose.ui.unit.sp
 
 
 @Composable
-fun LoginScreen(
+fun RegisterScreen(
+    onRegisterClick: () -> Unit = {},
     onLoginClick: () -> Unit = {}
 ) {
-
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF8FAFF))
     ) {
-
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
                 .align(Alignment.Center)
         ) {
-
             Text(
-                text = "Вход",
+                text = "Регистрация",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF111827),
@@ -53,69 +52,47 @@ fun LoginScreen(
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.White
-                ),
-                elevation = CardDefaults.cardElevation(
-                    defaultElevation = 8.dp
-                )
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
-
                 Column(
                     modifier = Modifier.padding(24.dp)
                 ) {
-
-                    Text(
-                        text = "Email",
-                        color = Color(0xFF6B7280)
+                    AuthField(
+                        label = "Имя",
+                        value = "Milana"
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    TextField(
-                        value = "milana@example.com",
-                        onValueChange = {},
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color(0xFFF3F6FC),
-                            unfocusedContainerColor = Color(0xFFF3F6FC),
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-                        )
+                    AuthField(
+                        label = "Email",
+                        value = "milana@example.com"
                     )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    Text(
-                        text = "Пароль",
-                        color = Color(0xFF6B7280)
+                    AuthField(
+                        label = "Пароль",
+                        value = "••••••••"
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    TextField(
-                        value = "••••••••",
-                        onValueChange = {},
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color(0xFFF3F6FC),
-                            unfocusedContainerColor = Color(0xFFF3F6FC),
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-                        )
+                    AuthField(
+                        label = "Повторите пароль",
+                        value = "••••••••"
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Button(
-                        onClick = onLoginClick,
+                        onClick = onRegisterClick,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp),
@@ -124,25 +101,28 @@ fun LoginScreen(
                             containerColor = Color(0xFF2F7DF6)
                         )
                     ) {
-
                         Text(
-                            text = "Войти",
+                            text = "Создать аккаунт",
                             fontWeight = FontWeight.Bold
                         )
                     }
                 }
             }
 
+            Spacer(modifier = Modifier.height(24.dp))
+
+            TextButton(
+                onClick = onLoginClick,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            ) {
+                Text(
+                    text = "Уже есть аккаунт? Войти",
+                    color = Color(0xFF111827),
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
             Spacer(modifier = Modifier.height(28.dp))
-
-            Text(
-                text = "Нет аккаунта? Зарегистрироваться ",
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF111827)
-            )
-
-            Spacer(modifier = Modifier.height(36.dp))
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -151,14 +131,49 @@ fun LoginScreen(
                     containerColor = Color(0xFFEFFAFF)
                 )
             ) {
-
                 Text(
-                    text = "Ваши анализы защищены и доступны\nтолько в личном кабинете.",
+                    text = "Ваши медицинские данные будут защищены\nи доступны только в личном кабинете.",
                     modifier = Modifier.padding(18.dp),
                     color = Color(0xFF667085),
                     fontSize = 14.sp
                 )
             }
         }
+    }
+}
+
+@Composable
+fun AuthField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit = {}
+) {
+
+    Column {
+
+        Text(
+            text = label,
+            color = Color(0xFF6B7280),
+            fontSize = 14.sp
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        TextField(
+            value = value,
+            onValueChange = onValueChange,
+
+            modifier = Modifier.fillMaxWidth(),
+
+            shape = RoundedCornerShape(14.dp),
+
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color(0xFFF3F6FC),
+                unfocusedContainerColor = Color(0xFFF3F6FC),
+
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            )
+        )
     }
 }
