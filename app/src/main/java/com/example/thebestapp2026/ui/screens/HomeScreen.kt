@@ -2,8 +2,10 @@ package com.example.thebestapp2026.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
@@ -23,6 +25,7 @@ fun HomeScreen() {
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF8FAFF))
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp)
     ) {
 
@@ -119,7 +122,7 @@ fun HomeScreen() {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 18.dp),
+                .padding(top = 18.dp, bottom = 120.dp),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(
                 containerColor = Color(0xFFFFF4E8)
