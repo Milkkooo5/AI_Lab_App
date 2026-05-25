@@ -2,20 +2,29 @@ package com.example.thebestapp2026.data.remote
 
 import android.content.Context
 import android.net.Uri
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import retrofit2.http.Body
+import retrofit2.http.Multipart
+import retrofit2.http.POST
+import retrofit2.http.Part
 
 interface ApiService {
 
+    @POST("register")
     suspend fun register(
-        request: RegisterRequest
+        @Body request: RegisterRequest
     ): AuthResponse
 
+    @POST("login")
     suspend fun login(
-        request: LoginRequest
+        @Body request: LoginRequest
     ): AuthResponse
 
+    @Multipart
+    @POST("analysis/upload")
     suspend fun uploadAnalysis(
-        context: Context,
-        userId: String,
-        fileUri: Uri
+        @Part("userId") userId: RequestBody,
+        @Part file: MultipartBody.Part
     ): AnalyzeResponse
 }
