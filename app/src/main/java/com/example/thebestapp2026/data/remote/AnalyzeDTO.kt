@@ -5,10 +5,14 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class AnalyzeResponse(
+    val indicators: List<AnalysisIndicator>,
+    val recommendation: String
+)
 
-    val userId: String,
-
-    val fileName: String,
-
-    val extractedText: String
+@Serializable
+data class AnalysisIndicator(
+    val name: String,
+    val value: String,
+    val unit: String = "",
+    val status: String
 )
