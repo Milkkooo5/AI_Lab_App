@@ -30,6 +30,12 @@ interface ApiService {
         @Header("Authorization")
         token: String,
         @Part("userId") userId: RequestBody,
+        @Part("name") name: RequestBody,
+        @Part("gender") gender: RequestBody,
+        @Part("birthDate") birthDate: RequestBody,
+        @Part("age") age: RequestBody,
+        @Part("previousAnalysis") previousAnalysis: RequestBody,
+        @Part("previousAnalyses") previousAnalyses: RequestBody,
         @Part file: MultipartBody.Part
     ): AnalyzeResponse
 

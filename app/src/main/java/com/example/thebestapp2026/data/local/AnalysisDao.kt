@@ -18,6 +18,6 @@ interface AnalysisDao {
         userId: String
     ): List<AnalysisEntity>
 
-    @Query("SELECT * FROM analysis ORDER BY id DESC LIMIT 1")
-    suspend fun getLastAnalysis(): AnalysisEntity?
+    @Query("SELECT * FROM analysis WHERE userId = :userId ORDER BY id DESC LIMIT 1")
+    suspend fun getLastAnalysis(userId: String): AnalysisEntity?
 }
