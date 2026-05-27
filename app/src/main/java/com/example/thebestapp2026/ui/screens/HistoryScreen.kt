@@ -16,52 +16,36 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.thebestapp2026.data.session.SessionManager
 import com.example.thebestapp2026.ui.viewmodel.HistoryViewModel
 
-private enum class HistoryFilter(val title: String) {
-    All("Все"),
-    Deviation("С отклонениями"),
-    Normal("Норма")
-}
-
 @Composable
 fun HistoryScreen(
     navController: NavController,
-    viewModel: HistoryViewModel = viewModel()
+    userId: String,
+    viewModel: HistoryViewModel
 ) {
     val history by viewModel.history.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
-    var filter by remember { mutableStateOf(HistoryFilter.All) }
 
-    LaunchedEffect(Unit) {
-        viewModel.loadHistory()
-    }
-
-    val filteredHistory = history.filter { analysis ->
-        val hasDeviation = analysis.toUiState().indicators.any { it.hasDeviation() } || analysis.toUiState().riskLabel == "Есть отклонения"
-        when (filter) {
-            HistoryFilter.All -> true
-            HistoryFilter.Deviation -> hasDeviation
-            HistoryFilter.Normal -> !hasDeviation
+    LaunchedEffect(userId) {
+        val currentUserId = userId.ifBlank { SessionManager.currentUser?.userId ?: "" }
+        if (currentUserId.isNotBlank()) {
+            viewModel.loadHistory(currentUserId)
         }
     }
 
@@ -73,7 +57,7 @@ fun HistoryScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            Spacer(modifier = Modifier.height(52.dp))
+            Spacer(modifier = Modifier.height(48.dp))
 
             Text(
                 text = "История",
@@ -82,84 +66,116 @@ fun HistoryScreen(
                 color = Color(0xFF111827)
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
-
             Text(
-                text = "Все сохранённые анализы",
-                fontSize = 14.sp,
-                color = Color(0xFF6B7280)
+                text = "Все сохраненные анализы",
+                color = Color(0xFF6B7280),
+                fontSize = 15.sp,
+                modifier = Modifier.padding(top = 4.dp)
             )
-
-            Row(
-                modifier = Modifier.padding(top = 14.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                HistoryFilter.entries.forEach { item ->
-                    FilterChip(
-                        selected = filter == item,
-                        onClick = { filter = item },
-                        label = { Text(item.title) }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
         }
 
         if (isLoading) {
-            item { CircularProgressIndicator(color = Color(0xFF2F7DFF)) }
-        } else if (error.isNotBlank()) {
-            item { EmptyState(text = error) }
-        } else if (filteredHistory.isEmpty()) {
-            item { EmptyState(text = "Данных пока нет") }
-        } else {
-            items(filteredHistory) { item ->
-                val ui = item.toUiState()
+            item {
+                CircularProgressIndicator(
+                    modifier = Modifier.padding(top = 24.dp),
+                    color = Color(0xFF2F7DFF)
+                )
+            }
+        }
+
+        if (error.isNotBlank()) {
+            item {
+                Text(
+                    text = error,
+                    color = Color(0xFFFF4D3A)
+                )
+            }
+        }
+
+        if (!isLoading && history.isEmpty()) {
+            item {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable {
-                            SessionManager.lastAnalysis = item
-                            SessionManager.save()
-                            navController.navigate("result")
-                        },
+                        .padding(top = 18.dp),
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(6.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Text(
-                            text = item.displayFileName(),
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF111827)
-                        )
+                    Text(
+                        text = "История пока пустая",
+                        color = Color(0xFF6B7280),
+                        modifier = Modifier.padding(20.dp)
+                    )
+                }
+            }
+        }
 
-                        Spacer(modifier = Modifier.height(6.dp))
+        items(history) { analysis ->
+            val ui = analysis.toUiState()
+            val isNormal = ui.riskColor == Color(0xFF22C55E)
 
-                        Text(
-                            text = item.createdAt.ifBlank { "Дата не указана" },
-                            fontSize = 14.sp,
-                            color = Color(0xFF6B7280)
-                        )
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        SessionManager.lastAnalysis = analysis
+                        navController.navigate("result")
+                    },
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            ) {
+                Column(modifier = Modifier.padding(18.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(end = 14.dp)
                         ) {
                             Text(
-                                text = ui.riskLabel,
-                                fontWeight = FontWeight.Medium,
-                                color = ui.riskColor
+                                text = analysis.fileName,
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF111827),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
                             )
 
-                            TextButton(onClick = { viewModel.deleteAnalysis(item) }) {
-                                Text("Удалить", color = Color(0xFFB42318))
-                            }
+                            Text(
+                                text = analysis.createdAt,
+                                color = Color(0xFF6B7280),
+                                fontSize = 13.sp,
+                                modifier = Modifier.padding(top = 6.dp)
+                            )
+                        }
+
+                        Card(
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isNormal) Color(0xFFEAF8EE) else Color(0xFFFFF0E5)
+                            )
+                        ) {
+                            Text(
+                                text = if (isNormal) "Норма" else "Отклонение",
+                                color = if (isNormal) Color(0xFF22C55E) else Color(0xFFFF8A00),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                            )
                         }
                     }
+
+                    Text(
+                        text = ui.summary,
+                        color = Color(0xFF6B7280),
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(top = 14.dp)
+                    )
                 }
             }
         }
