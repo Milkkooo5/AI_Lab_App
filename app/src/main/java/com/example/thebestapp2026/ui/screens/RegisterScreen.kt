@@ -1,6 +1,7 @@
 package com.example.thebestapp2026.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -8,172 +9,257 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
+import androidx.navigation.NavController
+import com.example.thebestapp2026.ui.viewmodel.RegisterViewModel
 
 @Composable
 fun RegisterScreen(
-    onRegisterClick: () -> Unit = {},
-    onLoginClick: () -> Unit = {}
+    navController: NavController,
+    viewModel: RegisterViewModel
 ) {
-    Box(
+    var name by rememberSaveable { mutableStateOf("") }
+    var surname by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var birthDate by rememberSaveable { mutableStateOf("") }
+    var city by rememberSaveable { mutableStateOf("") }
+    var gender by rememberSaveable { mutableStateOf("") }
+    var genderMenuOpen by rememberSaveable { mutableStateOf(false) }
+
+    val user by viewModel.user.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val error by viewModel.error.collectAsState()
+
+    LaunchedEffect(user) {
+        if (user != null) {
+            navController.navigate("home") {
+                popUpTo("register") { inclusive = true }
+            }
+        }
+    }
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF8FAFF))
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp),
+        verticalArrangement = Arrangement.Center
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .align(Alignment.Center)
+        Spacer(modifier = Modifier.height(42.dp))
+
+        Text(
+            text = "Регистрация",
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF111827)
+        )
+
+        Text(
+            text = "Создайте личный кабинет для анализов",
+            color = Color(0xFF6B7280),
+            fontSize = 15.sp,
+            modifier = Modifier.padding(top = 6.dp)
+        )
+
+        Spacer(modifier = Modifier.height(26.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
-            Text(
-                text = "Регистрация",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF111827),
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
+            Column(modifier = Modifier.padding(22.dp)) {
+                RegisterField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = "Имя"
+                )
 
-            Spacer(modifier = Modifier.height(28.dp))
+                RegisterField(
+                    value = surname,
+                    onValueChange = { surname = it },
+                    label = "Фамилия"
+                )
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp)
-                ) {
-                    AuthField(
-                        label = "Имя",
-                        value = "Milana"
-                    )
+                RegisterField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = "Email"
+                )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                RegisterField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = "Пароль",
+                    isPassword = true
+                )
 
-                    AuthField(
-                        label = "Email",
-                        value = "milana@example.com"
-                    )
+                RegisterField(
+                    value = birthDate,
+                    onValueChange = { birthDate = formatRegisterBirthDate(it) },
+                    label = "Дата рождения"
+                )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                RegisterField(
+                    value = city,
+                    onValueChange = { city = it },
+                    label = "Город"
+                )
 
-                    AuthField(
-                        label = "Пароль",
-                        value = "••••••••"
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    AuthField(
-                        label = "Повторите пароль",
-                        value = "••••••••"
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Button(
-                        onClick = onRegisterClick,
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = gender,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Пол") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(18.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF2F7DF6)
-                        )
+                            .padding(vertical = 6.dp)
+                    )
+
+                    TextButton(
+                        onClick = { genderMenuOpen = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp)
                     ) {
-                        Text(
-                            text = "Создать аккаунт",
-                            fontWeight = FontWeight.Bold
+                        Text("")
+                    }
+
+                    DropdownMenu(
+                        expanded = genderMenuOpen,
+                        onDismissRequest = { genderMenuOpen = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Мужской") },
+                            onClick = {
+                                gender = "Мужской"
+                                genderMenuOpen = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Женский") },
+                            onClick = {
+                                gender = "Женский"
+                                genderMenuOpen = false
+                            }
                         )
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(24.dp))
+                if (error.isNotBlank()) {
+                    Text(
+                        text = error,
+                        color = Color(0xFFFF4D3A),
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(top = 10.dp)
+                    )
+                }
 
-            TextButton(
-                onClick = onLoginClick,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            ) {
-                Text(
-                    text = "Уже есть аккаунт? Войти",
-                    color = Color(0xFF111827),
-                    fontWeight = FontWeight.Bold
-                )
-            }
+                Button(
+                    onClick = {
+                        viewModel.register(
+                            name = name,
+                            surname = surname,
+                            email = email,
+                            password = password,
+                            birthDate = birthDate,
+                            city = city,
+                            gender = gender
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 22.dp)
+                        .height(56.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF2F7DFF)
+                    ),
+                    enabled = !isLoading
+                ) {
+                    Text(
+                        text = if (isLoading) "Создание..." else "Создать аккаунт",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
 
-            Spacer(modifier = Modifier.height(28.dp))
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFEFFAFF)
-                )
-            ) {
-                Text(
-                    text = "Ваши медицинские данные будут защищены\nи доступны только в личном кабинете.",
-                    modifier = Modifier.padding(18.dp),
-                    color = Color(0xFF667085),
-                    fontSize = 14.sp
-                )
+                TextButton(
+                    onClick = { navController.navigate("login") },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Уже есть аккаунт? Войти",
+                        color = Color(0xFF2F7DFF)
+                    )
+                }
             }
         }
+
+        Spacer(modifier = Modifier.height(42.dp))
     }
 }
 
 @Composable
-fun AuthField(
-    label: String,
+private fun RegisterField(
     value: String,
-    onValueChange: (String) -> Unit = {}
+    onValueChange: (String) -> Unit,
+    label: String,
+    isPassword: Boolean = false
 ) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        singleLine = true,
+        visualTransformation = if (isPassword) {
+            PasswordVisualTransformation()
+        } else {
+            androidx.compose.ui.text.input.VisualTransformation.None
+        },
+        shape = RoundedCornerShape(18.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp)
+    )
+}
 
-    Column {
+private fun formatRegisterBirthDate(text: String): String {
+    val digits = text.filter { it.isDigit() }.take(8)
 
-        Text(
-            text = label,
-            color = Color(0xFF6B7280),
-            fontSize = 14.sp
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        TextField(
-            value = value,
-            onValueChange = onValueChange,
-
-            modifier = Modifier.fillMaxWidth(),
-
-            shape = RoundedCornerShape(14.dp),
-
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color(0xFFF3F6FC),
-                unfocusedContainerColor = Color(0xFFF3F6FC),
-
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
-            )
-        )
+    return when {
+        digits.length <= 2 -> digits
+        digits.length <= 4 -> digits.substring(0, 2) + "." + digits.substring(2)
+        else -> digits.substring(0, 2) + "." + digits.substring(2, 4) + "." + digits.substring(4)
     }
 }
