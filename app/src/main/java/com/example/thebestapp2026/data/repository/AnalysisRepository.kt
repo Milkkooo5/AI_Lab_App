@@ -12,10 +12,8 @@ interface AnalysisRepository {
         userId: String,
         fileUri: Uri
     ): Result<Analysis>
-
     suspend fun getHistory(
         userId: String
     ): List<Analysis>
-
     suspend fun getLastAnalysis(): Analysis?
 }

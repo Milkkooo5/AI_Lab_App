@@ -202,6 +202,7 @@ fun UploadScreen(
                 val uri = selectedUri
                 if (uri != null) {
                     val currentUserId = userId.ifBlank { SessionManager.currentUser?.userId ?: "" }
+                    println("upload userId = $currentUserId")
                     if (currentUserId.isBlank()) return@Button
 
                     viewModel.uploadAnalysis(

@@ -9,6 +9,7 @@ import com.example.thebestapp2026.ui.navigation.MainNavigation
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(R.style.Theme_TheBestApp2026)
         super.onCreate(savedInstanceState)
         SessionManager.init(this)
         enableEdgeToEdge()

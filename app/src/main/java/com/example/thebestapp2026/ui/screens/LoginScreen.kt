@@ -40,10 +40,12 @@ fun LoginScreen(
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var localError by remember { mutableStateOf("") }
 
     val user by viewModel.user.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
+    val screenError = localError.ifBlank { error }
 
     LaunchedEffect(user) {
         if (user != null) {
@@ -85,7 +87,10 @@ fun LoginScreen(
             Column(modifier = Modifier.padding(22.dp)) {
                 OutlinedTextField(
                     value = email,
-                    onValueChange = { email = it },
+                    onValueChange = {
+                        email = it
+                        localError = ""
+                    },
                     label = { Text("Email") },
                     singleLine = true,
                     shape = RoundedCornerShape(18.dp),
@@ -96,7 +101,10 @@ fun LoginScreen(
 
                 OutlinedTextField(
                     value = password,
-                    onValueChange = { password = it },
+                    onValueChange = {
+                        password = it
+                        localError = ""
+                    },
                     label = { Text("Пароль") },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
@@ -104,9 +112,9 @@ fun LoginScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                if (error.isNotBlank()) {
+                if (screenError.isNotBlank()) {
                     Text(
-                        text = error,
+                        text = screenError,
                         color = Color(0xFFFF4D3A),
                         fontSize = 13.sp,
                         modifier = Modifier.padding(top = 10.dp)
@@ -114,7 +122,17 @@ fun LoginScreen(
                 }
 
                 Button(
-                    onClick = { viewModel.login(email, password) },
+                    onClick = {
+                        localError = when {
+                            !email.contains("@") || !email.contains(".") -> "Введите корректную почту"
+                            password.length < 6 -> "Пароль должен быть не менее 6 символов"
+                            else -> ""
+                        }
+
+                        if (localError.isBlank()) {
+                            viewModel.login(email, password)
+                        }
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 24.dp)

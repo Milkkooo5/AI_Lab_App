@@ -37,6 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -51,7 +52,6 @@ fun ProfileScreen(
     val user by viewModel.user.collectAsState()
     val analysisCount by viewModel.analysisCount.collectAsState()
     val lastAnalysisDate by viewModel.lastAnalysisDate.collectAsState()
-    val lastAnalysisStatus by viewModel.lastAnalysisStatus.collectAsState()
     var isEditing by remember { mutableStateOf(false) }
 
     var name by remember { mutableStateOf("") }
@@ -149,12 +149,12 @@ fun ProfileScreen(
                     modifier = Modifier.weight(1f)
                 )
                 ProfileStat(
-                    number = lastAnalysisDate.ifBlank { "—" },
+                    number = formatProfileStatDate(lastAnalysisDate),
                     label = "последний",
                     modifier = Modifier.weight(1f)
                 )
                 ProfileStatusStat(
-                    status = lastAnalysisStatus.ifBlank { "Нет данных" },
+                    status = "Активен",
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -335,6 +335,30 @@ private fun formatBirthDate(text: String): String {
     }
 }
 
+private fun formatProfileStatDate(text: String): String {
+    val cleanText = text.trim()
+
+    if (cleanText.isBlank() || cleanText == "—") {
+        return "—"
+    }
+
+    val datePart = cleanText
+        .substringBefore("T")
+        .substringBefore(" ")
+
+    return when {
+        datePart.contains("-") -> {
+            val parts = datePart.split("-")
+            if (parts.size >= 3) "${parts[2]}.${parts[1]}" else datePart
+        }
+        datePart.contains(".") -> {
+            val parts = datePart.split(".")
+            if (parts.size >= 2) "${parts[0]}.${parts[1]}" else datePart
+        }
+        else -> datePart
+    }
+}
+
 @Composable
 fun ProfileStat(
     number: String,
@@ -355,10 +379,12 @@ fun ProfileStat(
         ) {
             Text(
                 text = number,
-                fontSize = 14.sp,
+                fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF2F7DFF),
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
 
             Text(
@@ -377,7 +403,8 @@ private fun ProfileStatusStat(
     status: String,
     modifier: Modifier = Modifier
 ) {
-    val isNormal = status.contains("Норма", ignoreCase = true)
+    val isNormal = status.contains("Норма", ignoreCase = true) ||
+            status.contains("Актив", ignoreCase = true)
     val hasDeviation = status.contains("Отклон", ignoreCase = true)
     val chipBackground = when {
         isNormal -> Color(0xFFEAF8EE)

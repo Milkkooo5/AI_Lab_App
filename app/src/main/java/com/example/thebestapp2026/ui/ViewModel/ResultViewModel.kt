@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.thebestapp2026.App
 import com.example.thebestapp2026.data.repository.AnalysisRepositoryImpl
+import com.example.thebestapp2026.data.session.SessionManager
 import com.example.thebestapp2026.domain.Analysis
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,7 +24,7 @@ class ResultViewModel : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
             _analysis.value = null
-            _analysis.value = repository.getLastAnalysis()
+            _analysis.value = SessionManager.lastAnalysis ?: repository.getLastAnalysis()
             _isLoading.value = false
         }
     }

@@ -113,6 +113,23 @@ fun HomeScreen(
 
             item {
                 Text(
+                    text = "AI вывод",
+                    fontSize = 21.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF111827),
+                    modifier = Modifier.padding(top = 6.dp)
+                )
+
+                HomeAiResultCard(
+                    summary = ui.summary,
+                    recommendation = ui.recommendation,
+                    comparison = ui.comparison,
+                    modifier = Modifier.padding(top = 12.dp)
+                )
+            }
+
+            item {
+                Text(
                     text = "Показатели",
                     fontSize = 21.sp,
                     fontWeight = FontWeight.Bold,
@@ -121,7 +138,7 @@ fun HomeScreen(
                 )
             }
 
-            ui.indicators.take(4).forEach { indicator ->
+            ui.indicators.forEach { indicator ->
                 item {
                     SmallIndicatorCard(
                         title = indicator.title,
@@ -132,32 +149,105 @@ fun HomeScreen(
             }
 
             item {
-                Text(
-                    text = "Рекомендация ИИ",
-                    fontSize = 21.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF111827),
-                    modifier = Modifier.padding(top = 6.dp)
-                )
-
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 12.dp, bottom = 120.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF4E8)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                ) {
-                    Text(
-                        text = ui.recommendation,
-                        modifier = Modifier.padding(20.dp),
-                        color = Color(0xFF9A5B16),
-                        fontSize = 15.sp
-                    )
-                }
+                Spacer(modifier = Modifier.height(120.dp))
             }
         }
     }
+}
+
+@Composable
+private fun HomeAiResultCard(
+    summary: String,
+    recommendation: String,
+    comparison: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            HomeAiMiniCard(
+                title = "Общий вывод",
+                text = summary,
+                titleColor = Color(0xFF22C55E),
+                backgroundColor = Color(0xFFEAF8EE)
+            )
+
+            HomeAiMiniCard(
+                title = "Что требует внимания",
+                text = findAttentionText(recommendation),
+                titleColor = Color(0xFFFF8A00),
+                backgroundColor = Color(0xFFFFF4E8)
+            )
+
+            HomeAiMiniCard(
+                title = "Рекомендации",
+                text = recommendation,
+                titleColor = Color(0xFF2F7DFF),
+                backgroundColor = Color(0xFFEFF6FF)
+            )
+
+            if (comparison.isNotBlank()) {
+                HomeAiMiniCard(
+                    title = "Сравнение",
+                    text = comparison,
+                    titleColor = Color(0xFF7C3AED),
+                    backgroundColor = Color(0xFFF4F0FF)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeAiMiniCard(
+    title: String,
+    text: String,
+    titleColor: Color,
+    backgroundColor: Color
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = backgroundColor)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = title,
+                color = titleColor,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Text(
+                text = text,
+                color = Color(0xFF374151),
+                fontSize = 14.sp,
+                modifier = Modifier.padding(top = 7.dp)
+            )
+        }
+    }
+}
+
+private fun findAttentionText(recommendation: String): String {
+    val sentences = recommendation
+        .replace("\n", ". ")
+        .split(".")
+        .map { it.trim() }
+        .filter { it.isNotBlank() }
+
+    return sentences.firstOrNull { sentence ->
+        sentence.contains("отклон", ignoreCase = true) ||
+                sentence.contains("вним", ignoreCase = true) ||
+                sentence.contains("повыш", ignoreCase = true) ||
+                sentence.contains("пониж", ignoreCase = true)
+    }?.let { "$it." } ?: "Явных критичных отклонений в выводе не выделено."
 }
 
 @Composable

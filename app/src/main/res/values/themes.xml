@@ -2,4 +2,10 @@
 <resources>
 
     <style name="Theme.TheBestApp2026" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.TheBestApp2026.Launcher" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@drawable/splash_screen</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+    </style>
 </resources>

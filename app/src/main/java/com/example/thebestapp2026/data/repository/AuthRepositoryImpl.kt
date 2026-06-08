@@ -23,7 +23,6 @@ class AuthRepositoryImpl(
         AppDatabase::class.java,
         "app_database"
     ).build()
-
     private val userDao = db.userDao()
 
     override suspend fun login(
@@ -34,17 +33,17 @@ class AuthRepositoryImpl(
             val response = api.login(LoginRequest(email, password))
 
             tokenStorage.saveToken(response.token)
+            val savedUser = userDao.getUserById(response.userId)
 
             val user = User(
                 userId = response.userId,
-                name = response.name,
-                surname = response.surname,
+                name = savedUser?.name?.ifBlank { response.name } ?: response.name,
+                surname = savedUser?.surname?.ifBlank { response.surname } ?: response.surname,
                 email = response.email,
-                birthDate = response.birthDate,
-                city = response.city,
-                gender = response.gender
+                birthDate = savedUser?.birthDate?.ifBlank { response.birthDate } ?: response.birthDate,
+                city = savedUser?.city?.ifBlank { response.city } ?: response.city,
+                gender = savedUser?.gender?.ifBlank { response.gender } ?: response.gender
             )
-
             userDao.saveUser(
                 UserEntity(
                     userId = user.userId,
@@ -150,7 +149,6 @@ class AuthRepositoryImpl(
 
     override suspend fun logout() {
         tokenStorage.clear()
-        userDao.logout()
         SessionManager.clear(context)
     }
 }

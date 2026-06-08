@@ -41,9 +41,10 @@ fun HistoryScreen(
     val history by viewModel.history.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
+    val currentUserId = userId.ifBlank { SessionManager.currentUser?.userId ?: "" }
 
-    LaunchedEffect(userId) {
-        val currentUserId = userId.ifBlank { SessionManager.currentUser?.userId ?: "" }
+    LaunchedEffect(currentUserId) {
+        println("history userId = $currentUserId")
         if (currentUserId.isNotBlank()) {
             viewModel.loadHistory(currentUserId)
         }

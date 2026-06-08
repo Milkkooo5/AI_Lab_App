@@ -21,16 +21,30 @@ class HomeViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
+    private var isAnalysisLoaded = false
+
     fun loadLastAnalysis() {
+        if (isAnalysisLoaded) {
+            return
+        }
+
+        if (_isLoading.value) {
+            return
+        }
+
         viewModelScope.launch {
             _isLoading.value = true
-            _analysis.value = null
-            _analysis.value = repository.getLastAnalysis()
-            _isLoading.value = false
+            try {
+                _analysis.value = repository.getLastAnalysis()
+                isAnalysisLoaded = true
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 
     fun clearAnalysis() {
         _analysis.value = null
+        isAnalysisLoaded = false
     }
 }

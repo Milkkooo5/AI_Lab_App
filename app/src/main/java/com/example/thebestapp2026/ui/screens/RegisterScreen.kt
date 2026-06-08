@@ -50,10 +50,12 @@ fun RegisterScreen(
     var city by rememberSaveable { mutableStateOf("") }
     var gender by rememberSaveable { mutableStateOf("") }
     var genderMenuOpen by rememberSaveable { mutableStateOf(false) }
+    var localError by rememberSaveable { mutableStateOf("") }
 
     val user by viewModel.user.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
+    val screenError = localError.ifBlank { error }
 
     LaunchedEffect(user) {
         if (user != null) {
@@ -98,25 +100,37 @@ fun RegisterScreen(
             Column(modifier = Modifier.padding(22.dp)) {
                 RegisterField(
                     value = name,
-                    onValueChange = { name = it },
+                    onValueChange = {
+                        name = it
+                        localError = ""
+                    },
                     label = "Имя"
                 )
 
                 RegisterField(
                     value = surname,
-                    onValueChange = { surname = it },
+                    onValueChange = {
+                        surname = it
+                        localError = ""
+                    },
                     label = "Фамилия"
                 )
 
                 RegisterField(
                     value = email,
-                    onValueChange = { email = it },
+                    onValueChange = {
+                        email = it
+                        localError = ""
+                    },
                     label = "Email"
                 )
 
                 RegisterField(
                     value = password,
-                    onValueChange = { password = it },
+                    onValueChange = {
+                        password = it
+                        localError = ""
+                    },
                     label = "Пароль",
                     isPassword = true
                 )
@@ -176,9 +190,9 @@ fun RegisterScreen(
                     }
                 }
 
-                if (error.isNotBlank()) {
+                if (screenError.isNotBlank()) {
                     Text(
-                        text = error,
+                        text = screenError,
                         color = Color(0xFFFF4D3A),
                         fontSize = 13.sp,
                         modifier = Modifier.padding(top = 10.dp)
@@ -187,15 +201,25 @@ fun RegisterScreen(
 
                 Button(
                     onClick = {
-                        viewModel.register(
-                            name = name,
-                            surname = surname,
-                            email = email,
-                            password = password,
-                            birthDate = birthDate,
-                            city = city,
-                            gender = gender
-                        )
+                        localError = when {
+                            name.isBlank() -> "Введите имя"
+                            surname.isBlank() -> "Введите фамилию"
+                            !email.contains("@") || !email.contains(".") -> "Введите корректную почту"
+                            password.length < 6 -> "Пароль должен быть не менее 6 символов"
+                            else -> ""
+                        }
+
+                        if (localError.isBlank()) {
+                            viewModel.register(
+                                name = name,
+                                surname = surname,
+                                email = email,
+                                password = password,
+                                birthDate = birthDate,
+                                city = city,
+                                gender = gender
+                            )
+                        }
                     },
                     modifier = Modifier
                         .fillMaxWidth()

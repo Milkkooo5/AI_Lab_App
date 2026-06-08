@@ -22,10 +22,21 @@ class HistoryViewModel : ViewModel() {
     private val _error = MutableStateFlow("")
     val error: StateFlow<String> = _error
 
+    private var isHistoryLoaded = false
+    private var loadedUserId = ""
+
     fun loadHistory(userId: String) {
         if (userId.isBlank()) {
-            _history.value = emptyList()
             _error.value = "Пользователь не найден"
+            _isLoading.value = false
+            return
+        }
+
+        if (isHistoryLoaded && loadedUserId == userId) {
+            return
+        }
+
+        if (_isLoading.value) {
             return
         }
 
@@ -34,18 +45,34 @@ class HistoryViewModel : ViewModel() {
             _error.value = ""
 
             try {
-                _history.value = repository.getHistory(userId)
+                val localHistory = repository.getLocalHistory(userId)
+                if (localHistory.isNotEmpty()) {
+                    _history.value = localHistory
+                }
+
+                val updatedHistory = repository.getHistory(userId)
+                _history.value = updatedHistory
+                isHistoryLoaded = true
+                loadedUserId = userId
             } catch (e: Exception) {
                 _error.value = e.message ?: "Ошибка загрузки истории"
+            } finally {
+                _isLoading.value = false
             }
-
-            _isLoading.value = false
         }
+    }
+
+    fun refreshHistory(userId: String) {
+        isHistoryLoaded = false
+        loadedUserId = ""
+        loadHistory(userId)
     }
 
     fun clearHistory() {
         _history.value = emptyList()
         _error.value = ""
         _isLoading.value = false
+        isHistoryLoaded = false
+        loadedUserId = ""
     }
 }

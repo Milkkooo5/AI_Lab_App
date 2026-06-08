@@ -28,7 +28,10 @@ fun Analysis.toUiState(): AnalysisUiState {
                     !it.startsWith("Сравнение", ignoreCase = true)
         }
         .map {
-            val title = it.substringBefore(":").trim()
+            val title = it.substringBefore(":")
+                .trim()
+                .trimStart('-', '•', '*')
+                .trim()
             val rest = it.substringAfter(":").trim()
             val value = rest.substringBefore(",").trim()
             val status = normalizeStatus(rest.substringAfter(",", "норма"))
@@ -41,15 +44,11 @@ fun Analysis.toUiState(): AnalysisUiState {
         }
 
     val recommendation = lines
-        .firstOrNull { it.startsWith("Рекомендация", ignoreCase = true) }
-        ?.substringAfter(":")
-        ?.trim()
+        .extractSection("Рекомендация")
         ?: "Покажите результат врачу при наличии жалоб."
 
     val comparison = lines
-        .firstOrNull { it.startsWith("Сравнение", ignoreCase = true) }
-        ?.substringAfter(":")
-        ?.trim()
+        .extractSection("Сравнение")
         ?: ""
 
     val hasRisk = indicators.any {
@@ -73,9 +72,43 @@ fun Analysis.toUiState(): AnalysisUiState {
 private fun normalizeStatus(status: String): String {
     val cleanStatus = status.trim().lowercase()
 
-    return if (cleanStatus == "отклонение") {
+    return if (
+        cleanStatus == "отклонение" ||
+        cleanStatus.contains("отклон") ||
+        cleanStatus.contains("выше") ||
+        cleanStatus.contains("ниже") ||
+        cleanStatus.contains("повыш") ||
+        cleanStatus.contains("пониж")
+    ) {
         "отклонение"
     } else {
         "норма"
     }
+}
+
+private fun List<String>.extractSection(title: String): String? {
+    val startIndex = indexOfFirst { line ->
+        line.startsWith(title, ignoreCase = true)
+    }
+
+    if (startIndex == -1) return null
+
+    val firstLine = this[startIndex].substringAfter(":").trim()
+    val nextSectionIndex = drop(startIndex + 1).indexOfFirst { line ->
+        line.startsWith("Рекомендация", ignoreCase = true) ||
+                line.startsWith("Сравнение", ignoreCase = true)
+    }
+
+    val extraLines = if (nextSectionIndex == -1) {
+        drop(startIndex + 1)
+    } else {
+        drop(startIndex + 1).take(nextSectionIndex)
+    }
+
+    return listOf(firstLine)
+        .plus(extraLines)
+        .map { it.trim() }
+        .filter { it.isNotBlank() }
+        .joinToString("\n")
+        .takeIf { it.isNotBlank() }
 }

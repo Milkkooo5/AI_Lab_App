@@ -93,4 +93,20 @@ dependencies {
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    // Unit tests
+    testImplementation("junit:junit:4.13.2")
+
+    // Android Instrumentation Tests
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test:rules:1.6.1")
+
+    // Compose UI Testing
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+    // Navigation testing (если используется NavController)
+    androidTestImplementation("androidx.navigation:navigation-testing:2.8.9")
 }

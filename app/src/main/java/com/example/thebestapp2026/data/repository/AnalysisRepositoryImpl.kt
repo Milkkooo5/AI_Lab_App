@@ -6,6 +6,8 @@ import androidx.room.Room
 import com.example.thebestapp2026.data.local.AnalysisEntity
 import com.example.thebestapp2026.data.local.AppDatabase
 import com.example.thebestapp2026.data.local.TokenStorage
+import com.example.thebestapp2026.data.remote.AnalyzeResponse
+import com.example.thebestapp2026.data.remote.AnalysisIndicator
 import com.example.thebestapp2026.data.remote.RetrofitClient
 import com.example.thebestapp2026.data.session.SessionManager
 import com.example.thebestapp2026.domain.Analysis
@@ -23,18 +25,14 @@ import java.util.Locale
 class AnalysisRepositoryImpl(
     private val appContext: Context
 ) : AnalysisRepository {
-
     private val api = RetrofitClient.api
     private val tokenStorage = TokenStorage(appContext)
-
     private val db = Room.databaseBuilder(
         appContext.applicationContext,
         AppDatabase::class.java,
         "app_database"
     ).build()
-
     private val analysisDao = db.analysisDao()
-
     override suspend fun uploadAnalysis(
         context: Context,
         userId: String,
@@ -42,13 +40,12 @@ class AnalysisRepositoryImpl(
     ): Result<Analysis> {
         return try {
             val token = tokenStorage.getToken()
-
+            println("upload userId = $userId")
             if (token.isBlank()) {
                 return Result.failure(
                     Exception("Токен не найден. Войдите заново.")
                 )
             }
-
             val file = uriToFile(context, fileUri)
             val currentUser = SessionManager.currentUser
             val normalizedBirthDate = normalizeBirthDate(currentUser?.birthDate ?: "")
@@ -57,37 +54,32 @@ class AnalysisRepositoryImpl(
             val userIdBody = userId.toRequestBody(
                 "text/plain".toMediaType()
             )
-
             val nameBody = (currentUser?.name ?: "").toRequestBody(
                 "text/plain".toMediaType()
             )
-
             val genderBody = (currentUser?.gender ?: "").toRequestBody(
                 "text/plain".toMediaType()
             )
-
             val birthDateBody = normalizedBirthDate.toRequestBody(
                 "text/plain".toMediaType()
             )
-
             val ageBody = age.toRequestBody(
                 "text/plain".toMediaType()
             )
-
             val previousAnalysis = analysisDao.getHistory(userId).firstOrNull()
             val previousAnalysisText = if (previousAnalysis != null) {
                 "${previousAnalysis.fileName}\n${previousAnalysis.resultJson}"
             } else {
                 "Предыдущий анализ отсутствует."
             }
-
             val previousAnalysisBody = previousAnalysisText.toRequestBody(
                 "text/plain".toMediaType()
             )
-
             val previousAnalysesBody = previousAnalysisText.toRequestBody(
                 "text/plain".toMediaType()
             )
+
+
 
             val filePart = MultipartBody.Part.createFormData(
                 name = "file",
@@ -109,19 +101,7 @@ class AnalysisRepositoryImpl(
                 file = filePart
             )
 
-            val indicatorsText = response.indicators.joinToString("\n") { indicator ->
-                val name = indicator.name ?: "Показатель"
-                val value = indicator.value ?: ""
-                val unit = indicator.unit ?: ""
-                val status = indicator.status ?: "норма"
-
-                val valueWithUnit = listOf(value, unit)
-                    .filter { part -> part.isNotBlank() }
-                    .joinToString(" ")
-
-                "$name: $valueWithUnit, $status"
-            }
-
+            val indicatorsText = buildIndicatorsText(response.indicators)
             val recommendationText = buildPersonalRecommendation(
                 recommendation = response.recommendation.orEmpty(),
                 name = currentUser?.name ?: "",
@@ -163,7 +143,6 @@ class AnalysisRepositoryImpl(
             )
 
             SessionManager.lastAnalysis = analysis
-
             Result.success(analysis)
         } catch (e: SocketTimeoutException) {
             Result.failure(Exception("Сервер долго отвечает. Попробуйте ещё раз."))
@@ -175,6 +154,44 @@ class AnalysisRepositoryImpl(
     override suspend fun getHistory(
         userId: String
     ): List<Analysis> {
+        println("history userId = $userId")
+
+        val localHistory = getLocalHistory(userId)
+
+        val token = tokenStorage.getToken()
+        if (token.isBlank()) {
+            println("history local count = ${localHistory.size}")
+            return localHistory
+        }
+
+        val remoteHistory = try {
+            api.getHistory(
+                token = "Bearer $token",
+                userId = userId
+            ).mapIndexed { index, response ->
+                response.toAnalysis(
+                    fallbackUserId = userId,
+                    fallbackIndex = index
+                )
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+        println("history local count = ${localHistory.size}")
+        println("history remote count = ${remoteHistory.size}")
+        return (localHistory + remoteHistory)
+            .distinctBy { analysis ->
+                listOf(
+                    analysis.id.takeIf { it != 0 }?.toString().orEmpty(),
+                    analysis.createdAt,
+                    analysis.fileName,
+                    analysis.aiText.take(80)
+                ).joinToString("|")
+            }
+            .sortedByDescending { it.id }
+    }
+
+    suspend fun getLocalHistory(userId: String): List<Analysis> {
         return analysisDao.getHistory(userId).map { entity ->
             Analysis(
                 id = entity.id,
@@ -189,9 +206,8 @@ class AnalysisRepositoryImpl(
 
     override suspend fun getLastAnalysis(): Analysis? {
         val currentUserId = SessionManager.currentUser?.userId ?: return null
-
         val entity = analysisDao.getLastAnalysis(currentUserId)
-            ?: return null
+            ?: return getHistory(currentUserId).firstOrNull()
 
         return Analysis(
             id = entity.id,
@@ -217,7 +233,6 @@ class AnalysisRepositoryImpl(
                 input.copyTo(output)
             }
         }
-
         return file
     }
 
@@ -228,12 +243,65 @@ class AnalysisRepositoryImpl(
         ).format(Date())
     }
 
+    private fun buildIndicatorsText(
+        indicators: List<AnalysisIndicator>
+    ): String {
+        return indicators.joinToString("\n") { indicator ->
+            val name = indicator.name ?: "Показатель"
+            val value = indicator.value ?: ""
+            val unit = indicator.unit ?: ""
+            val status = indicator.status ?: "норма"
+
+            val valueWithUnit = listOf(value, unit)
+                .filter { part -> part.isNotBlank() }
+                .joinToString(" ")
+
+            "$name: $valueWithUnit, $status"
+        }
+    }
+
+    private fun AnalyzeResponse.toAnalysis(
+        fallbackUserId: String,
+        fallbackIndex: Int
+    ): Analysis {
+        val storedText = resultJson
+            ?.takeIf { it.isNotBlank() }
+            ?: aiText?.takeIf { it.isNotBlank() }
+            ?: buildAiTextFromResponse(this)
+
+        return Analysis(
+            id = id ?: 0,
+            userId = userId?.takeIf { it.isNotBlank() } ?: fallbackUserId,
+            fileName = fileName?.takeIf { it.isNotBlank() }
+                ?: "analysis_${fallbackIndex + 1}.pdf",
+            aiText = storedText,
+            createdAt = createdAt?.takeIf { it.isNotBlank() } ?: "",
+            status = status?.takeIf { it.isNotBlank() } ?: "done"
+        )
+    }
+
+    private fun buildAiTextFromResponse(response: AnalyzeResponse): String {
+        val indicatorsText = buildIndicatorsText(response.indicators)
+        val recommendationText = response.recommendation.orEmpty()
+        val comparisonText = response.comparison.orEmpty()
+
+        return listOf(
+            indicatorsText,
+            recommendationText.takeIf { it.isNotBlank() }
+                ?.let { "Рекомендация: $it" },
+            comparisonText.takeIf { it.isNotBlank() }
+                ?.let { "Сравнение: $it" }
+        )
+            .filterNotNull()
+            .filter { it.isNotBlank() }
+            .joinToString("\n\n")
+    }
+
     private fun calculateAge(birthDate: String): String {
         return try {
             val normalizedDate = normalizeBirthDate(birthDate)
             val parts = normalizedDate.split(".")
             if (parts.size != 3) return ""
-
             val day = parts[0].toInt()
             val month = parts[1].toInt() - 1
             val year = parts[2].toInt()
@@ -243,7 +311,6 @@ class AnalysisRepositoryImpl(
 
             val today = Calendar.getInstance()
             var age = today.get(Calendar.YEAR) - birthCalendar.get(Calendar.YEAR)
-
             val birthdayThisYear = Calendar.getInstance()
             birthdayThisYear.set(
                 today.get(Calendar.YEAR),
@@ -344,7 +411,6 @@ class AnalysisRepositoryImpl(
         if (improved.isNotEmpty()) {
             parts.add("Улучшились: ${improved.joinToString(", ")}.")
         }
-
         if (worsened.isNotEmpty()) {
             parts.add("Требуют внимания: ${worsened.joinToString(", ")}.")
         }
@@ -374,7 +440,6 @@ class AnalysisRepositoryImpl(
 
     private fun normalizeStatus(status: String): String {
         val cleanStatus = status.trim().lowercase()
-
         return if (
             cleanStatus == "отклонение" ||
             cleanStatus.contains("отклон") ||
